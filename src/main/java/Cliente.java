@@ -2,6 +2,8 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
+import java.util.Scanner;
+
 public class Cliente {
 
     private static ZookeeperHelper.Queue queue;
@@ -14,11 +16,17 @@ public class Cliente {
 
     public static void main(String args[]) throws KeeperException, InterruptedException {
         ZookeeperHelper.Queue q = new ZookeeperHelper.Queue("localhost", "/filaTeste");
-        int i = 10;
-        colocarElementoNaFila(q,i);
+        System.out.println("Insira um numero de 1 a 100:");
+        Scanner scannerIn = new Scanner(System.in);
+        String resposta = scannerIn.nextLine();
+        colocarElementoNaFila(q,validaNumero(resposta));
         Thread.sleep(1000);
         int r = consomeElementoDaFila(q);
         System.out.println(r);
+    }
+
+    private static int validaNumero(String resposta){
+        return Integer.parseInt(resposta);
     }
 
     public void process(WatchedEvent e) {
@@ -51,10 +59,7 @@ public class Cliente {
 
     static void colocarElementoNaFila(ZookeeperHelper.Queue q, int i) throws KeeperException, InterruptedException {
         try {
-            q.produce(10 + i);
-            q.produce(20 + i);
-            q.produce(30 + i);
-            q.produce(40 + i);
+            q.produce(i);
         } catch (KeeperException e){
             e.printStackTrace();
         } catch (InterruptedException e){
@@ -64,16 +69,14 @@ public class Cliente {
 
     static int consomeElementoDaFila(ZookeeperHelper.Queue q) throws KeeperException, InterruptedException {
         int x = 0;
-        int y = 0;
         try{
             x = q.consume();
-            y = q.consume();
         } catch (KeeperException e){
             e.printStackTrace();
         } catch (InterruptedException e){
             e.printStackTrace();
         }
-        return x+y;
+        return x;
     }
 
 }
