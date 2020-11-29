@@ -4,7 +4,6 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
-import java.util.Arrays;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -14,14 +13,14 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
 
-public class SyncPrimitive implements Watcher {
+public class ZookeeperHelper implements Watcher {
 
     static ZooKeeper zk = null;
     static Integer mutex;
 
     String root;
 
-    SyncPrimitive(String address) {
+    ZookeeperHelper(String address) {
         if(zk == null){
             try {
                 System.out.println("Starting ZK:");
@@ -46,7 +45,7 @@ public class SyncPrimitive implements Watcher {
     /**
      * Barrier
      */
-    static public class Barrier extends SyncPrimitive {
+    static public class Barrier extends ZookeeperHelper {
         int size;
         String name;
 
@@ -124,20 +123,20 @@ public class SyncPrimitive implements Watcher {
             while (true) {
                 synchronized (mutex) {
                     List<String> list = zk.getChildren(root, true);
-                        if (list.size() > 0) {
-                            mutex.wait();
-                        } else {
-                            return true;
-                        }
+                    if (list.size() > 0) {
+                        mutex.wait();
+                    } else {
+                        return true;
                     }
                 }
+            }
         }
     }
 
     /**
      * Producer-Consumer queue
      */
-    static public class Queue extends SyncPrimitive {
+    static public class Queue extends ZookeeperHelper {
 
         /**
          * Constructor of producer-consumer queue
@@ -208,14 +207,14 @@ public class SyncPrimitive implements Watcher {
                         for(String s : list){
                             Integer tempValue = new Integer(s.substring(7));
                             //System.out.println("Temp value: " + tempValue);
-                            if(tempValue < min) { 
-                            	min = tempValue;
-                            	minString = s;
+                            if(tempValue < min) {
+                                min = tempValue;
+                                minString = s;
                             }
                         }
-                       System.out.println("Temporary value: " + root +"/"+ minString);
+                        System.out.println("Temporary value: " + root +"/"+ minString);
                         byte[] b = zk.getData(root +"/"+ minString,false, stat);
-                        //System.out.println("b: " + Arrays.toString(b)); 	
+                        //System.out.println("b: " + Arrays.toString(b));
                         zk.delete(root +"/"+ minString, 0);
                         ByteBuffer buffer = ByteBuffer.wrap(b);
                         retvalue = buffer.getInt();
@@ -226,10 +225,10 @@ public class SyncPrimitive implements Watcher {
         }
     }
 
-    static public class Lock extends SyncPrimitive {
-    	long wait;
-	String pathName;
-    	 /**
+    static public class Lock extends ZookeeperHelper {
+        long wait;
+        String pathName;
+        /**
          * Constructor of lock
          *
          * @param address
@@ -253,7 +252,7 @@ public class SyncPrimitive implements Watcher {
                 }
             }
         }
-        
+
         boolean lock() throws KeeperException, InterruptedException{
             //Step 1
             pathName = zk.create(root + "/lock-", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
@@ -261,92 +260,219 @@ public class SyncPrimitive implements Watcher {
             //Steps 2 to 5
             return testMin();
         }
-        
-	boolean testMin() throws KeeperException, InterruptedException{
-	    while (true) {
-		 Integer suffix = new Integer(pathName.substring(12));
-	         //Step 2 
-            	 List<String> list = zk.getChildren(root, false);
-                 Integer min = new Integer(list.get(0).substring(5));
-                 System.out.println("List: "+list.toString());
-                 String minString = list.get(0);
-                 for(String s : list){
-                 	Integer tempValue = new Integer(s.substring(5));
-                 	//System.out.println("Temp value: " + tempValue);
-                 	if(tempValue < min)  {
-                 		min = tempValue;
-                 		minString = s;
-                 	}
-                 }
+
+        boolean testMin() throws KeeperException, InterruptedException{
+            while (true) {
+                Integer suffix = new Integer(pathName.substring(12));
+                //Step 2
+                List<String> list = zk.getChildren(root, false);
+                Integer min = new Integer(list.get(0).substring(5));
+                System.out.println("List: "+list.toString());
+                String minString = list.get(0);
+                for(String s : list){
+                    Integer tempValue = new Integer(s.substring(5));
+                    //System.out.println("Temp value: " + tempValue);
+                    if(tempValue < min)  {
+                        min = tempValue;
+                        minString = s;
+                    }
+                }
                 System.out.println("Suffix: "+suffix+", min: "+min);
-           	//Step 3
-             	if (suffix.equals(min)) {
-            		System.out.println("Lock acquired for "+minString+"!");
-            		return true;
-            	}
-            	//Step 4
-            	//Wait for the removal of the next lowest sequence number
-            	Integer max = min;
-            	String maxString = minString;
-            	for(String s : list){
-            		Integer tempValue = new Integer(s.substring(5));
-            		//System.out.println("Temp value: " + tempValue);
-            		if(tempValue > max && tempValue < suffix)  {
-            			max = tempValue;
-            			maxString = s;
-            		}
-            	}
-            	//Exists with watch
-            	Stat s = zk.exists(root+"/"+maxString, this);
-            	System.out.println("Watching "+root+"/"+maxString);
-            	//Step 5
-            	if (s != null) {
-            	    //Wait for notification
-            	    break;  
-            	}
-	    }
+                //Step 3
+                if (suffix.equals(min)) {
+                    System.out.println("Lock acquired for "+minString+"!");
+                    return true;
+                }
+                //Step 4
+                //Wait for the removal of the next lowest sequence number
+                Integer max = min;
+                String maxString = minString;
+                for(String s : list){
+                    Integer tempValue = new Integer(s.substring(5));
+                    //System.out.println("Temp value: " + tempValue);
+                    if(tempValue > max && tempValue < suffix)  {
+                        max = tempValue;
+                        maxString = s;
+                    }
+                }
+                //Exists with watch
+                Stat s = zk.exists(root+"/"+maxString, this);
+                System.out.println("Watching "+root+"/"+maxString);
+                //Step 5
+                if (s != null) {
+                    //Wait for notification
+                    break;
+                }
+            }
             System.out.println(pathName+" is waiting for a notification!");
-	    return false;
-	}
+            return false;
+        }
 
         synchronized public void process(WatchedEvent event) {
             synchronized (mutex) {
-            	String path = event.getPath();
-            	if (event.getType() == Event.EventType.NodeDeleted) {
-            		System.out.println("Notification from "+path);
-			try {
-			    if (testMin()) { //Step 5 (cont.) -> go to step 2 to check
-				this.compute();
-			    } else {
-				System.out.println("Not lowest sequence number! Waiting for a new notification.");
-			    }
-			} catch (Exception e) {e.printStackTrace();}
-            	}
+                String path = event.getPath();
+                if (event.getType() == Event.EventType.NodeDeleted) {
+                    System.out.println("Notification from "+path);
+                    try {
+                        if (testMin()) { //Step 5 (cont.) -> go to step 2 to check
+                            this.compute();
+                        } else {
+                            System.out.println("Not lowest sequence number! Waiting for a new notification.");
+                        }
+                    } catch (Exception e) {e.printStackTrace();}
+                }
             }
         }
-        
+
         void compute() {
-        	System.out.println("Lock acquired!");
-    		try {
-				new Thread().sleep(wait);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-    		//Exits, which releases the ephemeral node (Unlock operation)
-    		System.out.println("Lock released!");
-    		System.exit(0);
+            System.out.println("Lock acquired!");
+            try {
+                new Thread().sleep(wait);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            //Exits, which releases the ephemeral node (Unlock operation)
+            System.out.println("Lock released!");
+            System.exit(0);
         }
     }
-    
+
+    static public class Leader extends ZookeeperHelper {
+        String leader;
+        String id; //Id of the leader
+        String pathName;
+
+        /**
+         * Constructor of Leader
+         *
+         * @param address
+         * @param name Name of the election node
+         * @param leader Name of the leader node
+         *
+         */
+        Leader(String address, String name, String leader, int id) {
+            super(address);
+            this.root = name;
+            this.leader = leader;
+            this.id = new Integer(id).toString();
+            // Create ZK node name
+            if (zk != null) {
+                try {
+                    //Create election znode
+                    Stat s1 = zk.exists(root, false);
+                    if (s1 == null) {
+                        zk.create(root, new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    }
+                    //Checking for a leader
+                    Stat s2 = zk.exists(leader, false);
+                    if (s2 != null) {
+                        byte[] idLeader = zk.getData(leader, false, s2);
+                        System.out.println("Current leader with id: "+new String(idLeader));
+                    }
+
+                } catch (KeeperException e) {
+                    System.out.println("Keeper exception when instantiating queue: " + e.toString());
+                } catch (InterruptedException e) {
+                    System.out.println("Interrupted exception");
+                }
+            }
+        }
+
+        boolean elect() throws KeeperException, InterruptedException{
+            this.pathName = zk.create(root + "/n-", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+            System.out.println("My path name is: "+pathName+" and my id is: "+id+"!");
+            return check();
+        }
+
+        boolean check() throws KeeperException, InterruptedException{
+            Integer suffix = new Integer(pathName.substring(12));
+            while (true) {
+                List<String> list = zk.getChildren(root, false);
+                Integer min = new Integer(list.get(0).substring(5));
+                System.out.println("List: "+list.toString());
+                String minString = list.get(0);
+                for(String s : list){
+                    Integer tempValue = new Integer(s.substring(5));
+                    //System.out.println("Temp value: " + tempValue);
+                    if(tempValue < min)  {
+                        min = tempValue;
+                        minString = s;
+                    }
+                }
+                System.out.println("Suffix: "+suffix+", min: "+min);
+                if (suffix.equals(min)) {
+                    this.leader();
+                    return true;
+                }
+                Integer max = min;
+                String maxString = minString;
+                for(String s : list){
+                    Integer tempValue = new Integer(s.substring(5));
+                    //System.out.println("Temp value: " + tempValue);
+                    if(tempValue > max && tempValue < suffix)  {
+                        max = tempValue;
+                        maxString = s;
+                    }
+                }
+                //Exists with watch
+                Stat s = zk.exists(root+"/"+maxString, this);
+                System.out.println("Watching "+root+"/"+maxString);
+                //Step 5
+                if (s != null) {
+                    //Wait for notification
+                    break;
+                }
+            }
+            System.out.println(pathName+" is waiting for a notification!");
+            return false;
+
+        }
+
+        synchronized public void process(WatchedEvent event) {
+            synchronized (mutex) {
+                if (event.getType() == Event.EventType.NodeDeleted) {
+                    try {
+                        boolean success = check();
+                        if (success) {
+                            compute();
+                        }
+                    } catch (Exception e) {e.printStackTrace();}
+                }
+            }
+        }
+
+        void leader() throws KeeperException, InterruptedException {
+            System.out.println("Become a leader: "+id+"!");
+            //Create leader znode
+            Stat s2 = zk.exists(leader, false);
+            if (s2 == null) {
+                zk.create(leader, id.getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+            } else {
+                zk.setData(leader, id.getBytes(), 0);
+            }
+        }
+
+        void compute() {
+            System.out.println("I will die after 10 seconds!");
+            try {
+                new Thread().sleep(10000);
+                System.out.println("Process "+id+" died!");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.exit(0);
+        }
+    }
+
     public static void main(String args[]) {
         if (args[0].equals("qTest"))
             queueTest(args);
         else if (args[0].equals("barrier"))
             barrierTest(args);
         else if (args[0].equals("lock"))
-        	lockTest(args);
+            lockTest(args);
         else
-        	System.err.println("Unkonw option");
+            System.err.println("Unkonw option");
     }
 
     public static void queueTest(String args[]) {
@@ -364,7 +490,7 @@ public class SyncPrimitive implements Watcher {
                 } catch (KeeperException e){
                     e.printStackTrace();
                 } catch (InterruptedException e){
-			    e.printStackTrace();
+                    e.printStackTrace();
                 }
         } else {
             System.out.println("Consumer");
@@ -376,7 +502,7 @@ public class SyncPrimitive implements Watcher {
                 } catch (KeeperException e){
                     i--;
                 } catch (InterruptedException e){
-			    e.printStackTrace();
+                    e.printStackTrace();
                 }
             }
         }
@@ -414,23 +540,24 @@ public class SyncPrimitive implements Watcher {
         }
         System.out.println("Left barrier");
     }
-    
+
     public static void lockTest(String args[]) {
-    	Lock lock = new Lock(args[1],"/lock",new Long(args[2]));
+        Lock lock = new Lock(args[1],"/lock",new Long(args[2]));
         try{
-        	boolean success = lock.lock();
-        	if (success) {
-        		lock.compute();
-        	} else {
-        		while(true) {
-        			//Waiting for a notification
-        		}
-            }         
+            boolean success = lock.lock();
+            if (success) {
+                lock.compute();
+            } else {
+                while(true) {
+                    //Waiting for a notification
+                }
+            }
         } catch (KeeperException e){
-        	e.printStackTrace();
+            e.printStackTrace();
         } catch (InterruptedException e){
-        	e.printStackTrace();
+            e.printStackTrace();
         }
     }
-    
+
 }
+
