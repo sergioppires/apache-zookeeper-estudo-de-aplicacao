@@ -2,6 +2,11 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.util.Scanner;
 
 public class Cliente {
@@ -14,15 +19,26 @@ public class Cliente {
     volatile boolean connected = false;
     volatile boolean expired = false;
 
-    public static void main(String args[]) throws KeeperException, InterruptedException {
+    public static void main(String args[]) throws KeeperException, InterruptedException, IOException, ClassNotFoundException {
         ZookeeperHelper.Queue q = new ZookeeperHelper.Queue("localhost", "/filaTeste");
-        System.out.println("Insira um numero de 1 a 100:");
-        Scanner scannerIn = new Scanner(System.in);
-        String resposta = scannerIn.nextLine();
-        colocarElementoNaFila(q,validaNumero(resposta));
-        Thread.sleep(1000);
-        int r = consomeElementoDaFila(q);
-        System.out.println(r);
+        InetAddress host = InetAddress.getLocalHost();
+        Socket socket = null;
+        ObjectOutputStream oos = null;
+        ObjectInputStream ois = null;
+        while(true){
+            socket = new Socket(host.getHostName(), 9876);
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            System.out.println("Insira um numero de 1 a 100:");
+            Scanner scannerIn = new Scanner(System.in);
+            String resposta = scannerIn.nextLine();
+            oos.writeObject(resposta);
+            colocarElementoNaFila(q,validaNumero(resposta));
+            ois = new ObjectInputStream(socket.getInputStream());
+            String message = (String) ois.readObject();
+            ois.close();
+            oos.close();
+            Thread.sleep(100);
+        }
     }
 
     private static int validaNumero(String resposta){
