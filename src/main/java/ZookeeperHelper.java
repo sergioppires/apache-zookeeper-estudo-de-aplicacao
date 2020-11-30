@@ -577,7 +577,7 @@ public class ZookeeperHelper implements Watcher {
     }
 
     public static ZookeeperHelper.Queue criaFila(){
-        return new ZookeeperHelper.Queue("localhost", "/filaTeste");
+        return new ZookeeperHelper.Queue("localhost", "/respostas");
     }
 
     public static ZookeeperHelper.Barrier criaBarreira(){
