@@ -1,3 +1,4 @@
+import models.Pergunta;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -25,10 +26,12 @@ public class Cliente {
         Socket socket = null;
         ObjectOutputStream oos = null;
         ObjectInputStream ois = null;
+        Pergunta pergunta = new Pergunta();
         while(true){
             socket = new Socket(host.getHostName(), 9876);
             oos = new ObjectOutputStream(socket.getOutputStream());
-            System.out.println("Insira um numero de 1 a 100:");
+            System.out.println(pergunta.pergunta1().getPergunta());
+            System.out.println(pergunta.pergunta1().getOpcoes());
             Scanner scannerIn = new Scanner(System.in);
             String resposta = scannerIn.nextLine();
             oos.writeObject(resposta);
