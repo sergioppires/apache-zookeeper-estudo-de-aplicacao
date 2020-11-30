@@ -1,3 +1,4 @@
+import models.Pergunta;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -12,65 +13,30 @@ import java.util.Scanner;
 public class Cliente {
 
     private static ZookeeperHelper.Queue queue;
-    ZookeeperHelper.Lock lock;
-    ZookeeperHelper.Barrier barrier;
-    ZookeeperHelper.Leader leader;
 
     volatile boolean connected = false;
     volatile boolean expired = false;
 
     public static void main(String args[]) throws KeeperException, InterruptedException, IOException, ClassNotFoundException {
-        ZookeeperHelper.Queue q = new ZookeeperHelper.Queue("localhost", "/filaTeste");
+        ZookeeperHelper.Queue q = ZookeeperHelper.criaFila();
         InetAddress host = InetAddress.getLocalHost();
         Socket socket = null;
         ObjectOutputStream oos = null;
         ObjectInputStream ois = null;
-        while(true){
-            socket = new Socket(host.getHostName(), 9876);
-            oos = new ObjectOutputStream(socket.getOutputStream());
-            System.out.println("Insira um numero de 1 a 100:");
-            Scanner scannerIn = new Scanner(System.in);
-            String resposta = scannerIn.nextLine();
-            oos.writeObject(resposta);
-            colocarElementoNaFila(q,validaNumero(resposta));
-            ois = new ObjectInputStream(socket.getInputStream());
-            String message = (String) ois.readObject();
-            ois.close();
-            oos.close();
-            Thread.sleep(100);
-        }
+        Pergunta pergunta = new Pergunta();
+        ZookeeperHelper.Barrier barreira = new ZookeeperHelper.Barrier("localhost","/b1",3);
+        System.out.println("Aguardando todos os jogadores se conectarem.");
+        boolean flag = barreira.enter();
+        System.out.println(pergunta.pergunta1().getPergunta());
+        System.out.println(pergunta.pergunta1().getOpcoes());
+        Scanner scannerIn = new Scanner(System.in);
+        String answer = scannerIn.nextLine();
+        colocarElementoNaFila(q, validaNumero(answer));
+        System.out.println("Obrigado por jogar conosco! O Relatório será gerado pelo servidor");
     }
 
     private static int validaNumero(String resposta){
         return Integer.parseInt(resposta);
-    }
-
-    public void process(WatchedEvent e) {
-        System.out.println(e);
-        if(e.getType() == Watcher.Event.EventType.None){
-            switch (e.getState()) {
-            case SyncConnected:
-                connected = true;
-                break;
-            case Disconnected:
-                connected = false;
-                break;
-            case Expired:
-                expired = true;
-                connected = false;
-                System.out.println("Exiting due to session expiration");
-            default:
-                break;
-            }
-        }
-    }
-
-    boolean isConnected(){
-        return connected;
-    }
-
-    boolean isExpired(){
-        return expired;
     }
 
     static void colocarElementoNaFila(ZookeeperHelper.Queue q, int i) throws KeeperException, InterruptedException {
@@ -81,18 +47,6 @@ public class Cliente {
         } catch (InterruptedException e){
             e.printStackTrace();
         }
-    }
-
-    static int consomeElementoDaFila(ZookeeperHelper.Queue q) throws KeeperException, InterruptedException {
-        int x = 0;
-        try{
-            x = q.consume();
-        } catch (KeeperException e){
-            e.printStackTrace();
-        } catch (InterruptedException e){
-            e.printStackTrace();
-        }
-        return x;
     }
 
 }
