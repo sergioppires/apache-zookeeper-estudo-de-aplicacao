@@ -4,6 +4,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
+
 import models.Pergunta;
 import org.apache.zookeeper.KeeperException;
 
@@ -16,46 +19,30 @@ public class Master {
     public static void main(String args[]) throws IOException, ClassNotFoundException, KeeperException, InterruptedException {
         server = new ServerSocket(port);
         ZookeeperHelper.Queue q = ZookeeperHelper.criaFila();
-        ZookeeperHelper.Barrier barreira = new ZookeeperHelper.Barrier("localhost","/b1",2);
-        while(barreira.leave()){
-            System.out.println("Esperando os jogadores.");
-            Thread.sleep(1000);
-        }
+        ZookeeperHelper.Lock lock = ZookeeperHelper.criaLock();
+        ZookeeperHelper.Barrier barreira = new ZookeeperHelper.Barrier("localhost","/b1",3);
+        boolean flag = barreira.enter();
         while(true){
-            Socket socket = server.accept();
-            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-            int message = (Integer) ois.readObject();
-            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            if(message == consomeElementoDaFila(q)){
-                oos.write(1);
-            } else {
-                oos.write(0);
+            System.out.println("Esperando os jogadores.");
+
+            try{
+                boolean success = lock.lock();
+                if (success) {
+                    List<Integer> listaRespostas = new ArrayList<>();
+                    for(int i=0;i<2;i++) {
+                        listaRespostas.add(consomeElementoDaFila(q));
+                    }
+                    lock.computeResultados(listaRespostas, new Pergunta().pergunta1(), 2);
+                } else {
+                    while(true) {
+                    }
+                }
+            } catch (KeeperException e){
+                e.printStackTrace();
+            } catch (InterruptedException e){
+                e.printStackTrace();
             }
-            ois.close();
-            oos.close();
-            socket.close();
-            if(message == 0) break;
         }
-        server.close();
-    }
-
-
-
-    private static int validaNumero(String resposta){
-        return Integer.parseInt(resposta);
-    }
-
-    private static void lock(){
-        ZookeeperHelper.Lock lock = new ZookeeperHelper.Lock("localhost","/lock",1000);
-
-    }
-
-    private static void barrier(){
-        ZookeeperHelper.Barrier barrier = new ZookeeperHelper.Barrier("localhost","/filaTeste",3);
-    }
-
-    private static Pergunta criaPergunta(){
-        return criaPergunta().pergunta1();
     }
 
     static int consomeElementoDaFila(ZookeeperHelper.Queue q) throws KeeperException, InterruptedException {

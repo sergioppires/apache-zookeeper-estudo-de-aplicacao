@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 
+import models.Pergunta;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -335,6 +336,22 @@ public class ZookeeperHelper implements Watcher {
             System.out.println("Lock released!");
             System.exit(0);
         }
+
+        void computeResultados(List<Integer> respostas, Pergunta pergunta, int players) {
+            System.out.println("Lock acquired!");
+            try {
+                new Thread().sleep(wait);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            //Exits, which releases the ephemeral node (Unlock operation)
+            System.out.println("Lock released!");
+            int respostaCorreta = pergunta.pergunta1().getResposta();
+            int acertos = (int) respostas.stream().filter(r -> respostaCorreta == r).count();;
+            int erros = players - acertos;
+            System.out.println("Acertos: " + acertos + " | Erros: " + erros);
+            System.exit(0);
+        }
     }
 
     static public class Leader extends ZookeeperHelper {
@@ -565,6 +582,11 @@ public class ZookeeperHelper implements Watcher {
 
     public static ZookeeperHelper.Barrier criaBarreira(){
         return new ZookeeperHelper.Barrier("localhost","/b1",2);
+    }
+
+    public static Lock criaLock(){
+        return new Lock("localhost","/lock",10000);
+
     }
 
 }
