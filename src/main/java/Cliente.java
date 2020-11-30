@@ -21,27 +21,35 @@ public class Cliente {
     volatile boolean expired = false;
 
     public static void main(String args[]) throws KeeperException, InterruptedException, IOException, ClassNotFoundException {
-        ZookeeperHelper.Queue q = new ZookeeperHelper.Queue("localhost", "/filaTeste");
+        ZookeeperHelper.Queue q = ZookeeperHelper.criaFila();
         InetAddress host = InetAddress.getLocalHost();
         Socket socket = null;
         ObjectOutputStream oos = null;
         ObjectInputStream ois = null;
         Pergunta pergunta = new Pergunta();
-        while(true){
-            socket = new Socket(host.getHostName(), 9876);
-            oos = new ObjectOutputStream(socket.getOutputStream());
+        ZookeeperHelper.Barrier barreira = new ZookeeperHelper.Barrier("localhost","/b1",2);
+        boolean flag = barreira.enter();
+        while(true) {
             System.out.println(pergunta.pergunta1().getPergunta());
             System.out.println(pergunta.pergunta1().getOpcoes());
             Scanner scannerIn = new Scanner(System.in);
-            String resposta = scannerIn.nextLine();
-            oos.writeObject(resposta);
-            colocarElementoNaFila(q,validaNumero(resposta));
+            String answer = scannerIn.nextLine();
+            colocarElementoNaFila(q, validaNumero(answer));
+            socket = new Socket(host.getHostName(), 9876);
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            oos.writeObject(Integer.parseInt(answer));
             ois = new ObjectInputStream(socket.getInputStream());
-            String message = (String) ois.readObject();
+            int digitoValidador = (Integer) ois.readObject();
+            if (digitoValidador == 1) {
+                System.out.println("Resposta correta");
+            } else {
+                System.out.println("Resposta errada. Nova tentativa em 2 segundos.");
+            }
             ois.close();
             oos.close();
-            Thread.sleep(100);
+            Thread.sleep(2000);
         }
+
     }
 
     private static int validaNumero(String resposta){

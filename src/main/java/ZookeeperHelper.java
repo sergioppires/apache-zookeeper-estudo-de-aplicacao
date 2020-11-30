@@ -559,5 +559,13 @@ public class ZookeeperHelper implements Watcher {
         }
     }
 
+    public static ZookeeperHelper.Queue criaFila(){
+        return new ZookeeperHelper.Queue("localhost", "/filaTeste");
+    }
+
+    public static ZookeeperHelper.Barrier criaBarreira(){
+        return new ZookeeperHelper.Barrier("localhost","/b1",2);
+    }
+
 }
 

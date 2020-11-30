@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
@@ -14,13 +15,18 @@ public class Master {
 
     public static void main(String args[]) throws IOException, ClassNotFoundException, KeeperException, InterruptedException {
         server = new ServerSocket(port);
-        ZookeeperHelper.Queue q = new ZookeeperHelper.Queue("localhost", "/filaTeste");
+        ZookeeperHelper.Queue q = ZookeeperHelper.criaFila();
+        ZookeeperHelper.Barrier barreira = new ZookeeperHelper.Barrier("localhost","/b1",2);
+        while(barreira.leave()){
+            System.out.println("Esperando os jogadores.");
+            Thread.sleep(1000);
+        }
         while(true){
             Socket socket = server.accept();
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-            String message = (String) ois.readObject();
+            int message = (Integer) ois.readObject();
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            if(Integer.parseInt(message) == consomeElementoDaFila(q)){
+            if(message == consomeElementoDaFila(q)){
                 oos.write(1);
             } else {
                 oos.write(0);
@@ -28,10 +34,12 @@ public class Master {
             ois.close();
             oos.close();
             socket.close();
-            if(message.equalsIgnoreCase("exit")) break;
+            if(message == 0) break;
         }
         server.close();
     }
+
+
 
     private static int validaNumero(String resposta){
         return Integer.parseInt(resposta);
