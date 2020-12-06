@@ -350,7 +350,7 @@ public class ZookeeperHelper implements Watcher {
             int acertos = (int) respostas.stream().filter(r -> respostaCorreta == r).count();;
             int erros = players - acertos;
             System.out.println("Acertos: " + acertos + " | Erros: " + erros);
-            System.exit(0);
+            //System.exit(0);
         }
     }
 
@@ -576,16 +576,20 @@ public class ZookeeperHelper implements Watcher {
         }
     }
 
-    public static ZookeeperHelper.Queue criaFila(){
+    public static ZookeeperHelper.Queue criaFilaRespostas(){
         return new ZookeeperHelper.Queue("localhost", "/respostas");
+    }
+
+    public static ZookeeperHelper.Queue criaFilaPerguntas(){
+        return new ZookeeperHelper.Queue("localhost", "/perguntas");
     }
 
     public static ZookeeperHelper.Queue criaFilaJogadores(){
         return new ZookeeperHelper.Queue("localhost", "/jogadores");
     }
 
-    public static ZookeeperHelper.Barrier criaBarreira(){
-        return new ZookeeperHelper.Barrier("localhost","/b1",2);
+    public static ZookeeperHelper.Barrier criaBarreiraPorPergunta(int pergunta, int tamanho){
+        return new ZookeeperHelper.Barrier("localhost","/p"+pergunta,tamanho);
     }
 
     public static Lock criaLock(){

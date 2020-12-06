@@ -14,23 +14,32 @@ import java.util.Scanner;
 public class Cliente {
 
     public static void main(String args[]) throws KeeperException, InterruptedException, IOException, ClassNotFoundException {
-        ZookeeperHelper.Queue q = ZookeeperHelper.criaFila();
+        ZookeeperHelper.Queue filaRespostas = ZookeeperHelper.criaFilaRespostas();
         ZookeeperHelper.Queue filaJogadores = ZookeeperHelper.criaFilaJogadores();
+        ZookeeperHelper.Queue filaPerguntas = ZookeeperHelper.criaFilaPerguntas();
         Jogador jogador = criarJogador(pegarIdJogador(filaJogadores));
-
-
-        Pergunta pergunta = Pergunta.consumirPerguntaAleatoria();
-        ZookeeperHelper.Barrier barreira = new ZookeeperHelper.Barrier("localhost","/b1",3);
+        ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",3);
         System.out.println("Aguardando todos os jogadores se conectarem.");
-        barreira.enter();
-        System.out.println(pergunta.getPergunta());
-        System.out.println(pergunta.getOpcoes());
-        Scanner scannerIn = new Scanner(System.in);
-        String answer = scannerIn.nextLine();
-        colocarElementoNaFila(q, validaNumero(answer));
-        System.out.println("Obrigado por jogar conosco! O Relatório será gerado pelo servidor");
-
+        barreiraComecoGame.enter();
         while(true){
+            Thread.sleep(1000);
+            int numeroJogadores = pegaNumeroJogadores();
+           // int indice = filaPerguntas.consume();
+            int indice = 1;
+            ZookeeperHelper.Barrier barreiraPergunta = new ZookeeperHelper.Barrier("localhost","/p"+indice,3);
+            barreiraPergunta.enter();
+            Pergunta pergunta = Pergunta.consumirPerguntaPorIndice(indice);
+            System.out.println(pergunta.getPergunta());
+            System.out.println(pergunta.getOpcoes());
+            Scanner scannerIn = new Scanner(System.in);
+            String answer = scannerIn.nextLine();
+            if(Integer.parseInt(answer)== pergunta.getResposta()){
+                System.out.println("Você acertou!");
+            } else {
+                System.out.println("Você errou!");
+            }
+            colocarElementoNaFila(filaRespostas, validaNumero(answer));
+            indice++;
 
         }
     }
@@ -57,6 +66,13 @@ public class Cliente {
 
     static Jogador criarJogador(int id){
         return new Jogador(id);
+    }
+
+    private static int pegaNumeroJogadores() throws KeeperException, InterruptedException {
+        ZookeeperHelper.Queue filaJogadores = ZookeeperHelper.criaFilaJogadores();
+        int jogadores = filaJogadores.consume();
+        filaJogadores.produce(jogadores);
+        return jogadores;
     }
 
 }
