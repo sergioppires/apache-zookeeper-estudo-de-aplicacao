@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 
+import models.Jogador;
 import models.Pergunta;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -337,7 +338,7 @@ public class ZookeeperHelper implements Watcher {
             System.exit(0);
         }
 
-        void computeResultados(List<Integer> respostas, Pergunta pergunta, int players) {
+        void computeResultados(List<Integer> respostas, Pergunta pergunta, Jogador[] players) {
             System.out.println("Lock acquired!");
             try {
                 new Thread().sleep(wait);
@@ -346,10 +347,21 @@ public class ZookeeperHelper implements Watcher {
             }
             //Exits, which releases the ephemeral node (Unlock operation)
             System.out.println("Lock released!");
-            int respostaCorreta = pergunta.pergunta1().getResposta();
-            int acertos = (int) respostas.stream().filter(r -> respostaCorreta == r).count();;
-            int erros = players - acertos;
-            System.out.println("Acertos: " + acertos + " | Erros: " + erros);
+            int respostaCorreta = pergunta.getResposta();
+            respostas.forEach(resposta ->{
+                int resp = 0;
+                int jogador = 0;
+                resp = resposta%10;
+                jogador =  ((resposta-resp)/10)-1;
+
+                if(respostaCorreta==resp){
+                    players[jogador].pontuar(1);
+                }
+            });
+
+            for(int i=0;i<3;i++){
+                System.out.println("Jogador "+ i + "| Score: " + players[i].getScore());
+            }
             System.exit(0);
         }
     }
@@ -576,16 +588,28 @@ public class ZookeeperHelper implements Watcher {
         }
     }
 
-    public static ZookeeperHelper.Queue criaFila(){
+    public static ZookeeperHelper.Queue criaFilaRespostas(){
         return new ZookeeperHelper.Queue("localhost", "/respostas");
     }
 
-    public static ZookeeperHelper.Barrier criaBarreira(){
-        return new ZookeeperHelper.Barrier("localhost","/b1",2);
+    public static ZookeeperHelper.Queue criaFilaLideranca(){
+        return new ZookeeperHelper.Queue("localhost", "/lideranca");
+    }
+
+    public static ZookeeperHelper.Queue criaFilaPerguntas(){
+        return new ZookeeperHelper.Queue("localhost", "/perguntas");
+    }
+
+    public static ZookeeperHelper.Queue criaFilaJogadores(){
+        return new ZookeeperHelper.Queue("localhost", "/jogadores");
+    }
+
+    public static ZookeeperHelper.Barrier criaBarreiraPorPergunta(int pergunta, int tamanho){
+        return new ZookeeperHelper.Barrier("localhost","/p"+pergunta,tamanho);
     }
 
     public static Lock criaLock(){
-        return new Lock("localhost","/lock",10000);
+        return new Lock("localhost","/lock",3000);
 
     }
 
