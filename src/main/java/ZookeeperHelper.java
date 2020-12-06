@@ -580,6 +580,10 @@ public class ZookeeperHelper implements Watcher {
         return new ZookeeperHelper.Queue("localhost", "/respostas");
     }
 
+    public static ZookeeperHelper.Queue criaFilaJogadores(){
+        return new ZookeeperHelper.Queue("localhost", "/jogadores");
+    }
+
     public static ZookeeperHelper.Barrier criaBarreira(){
         return new ZookeeperHelper.Barrier("localhost","/b1",2);
     }

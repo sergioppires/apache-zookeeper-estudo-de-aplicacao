@@ -1,3 +1,4 @@
+import models.Jogador;
 import models.Pergunta;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -12,27 +13,26 @@ import java.util.Scanner;
 
 public class Cliente {
 
-    private static ZookeeperHelper.Queue queue;
-
-    volatile boolean connected = false;
-    volatile boolean expired = false;
-
     public static void main(String args[]) throws KeeperException, InterruptedException, IOException, ClassNotFoundException {
         ZookeeperHelper.Queue q = ZookeeperHelper.criaFila();
-        InetAddress host = InetAddress.getLocalHost();
-        Socket socket = null;
-        ObjectOutputStream oos = null;
-        ObjectInputStream ois = null;
-        Pergunta pergunta = new Pergunta();
+        ZookeeperHelper.Queue filaJogadores = ZookeeperHelper.criaFilaJogadores();
+        Jogador jogador = criarJogador(pegarIdJogador(filaJogadores));
+
+
+        Pergunta pergunta = Pergunta.consumirPerguntaAleatoria();
         ZookeeperHelper.Barrier barreira = new ZookeeperHelper.Barrier("localhost","/b1",3);
         System.out.println("Aguardando todos os jogadores se conectarem.");
-        boolean flag = barreira.enter();
-        System.out.println(pergunta.pergunta1().getPergunta());
-        System.out.println(pergunta.pergunta1().getOpcoes());
+        barreira.enter();
+        System.out.println(pergunta.getPergunta());
+        System.out.println(pergunta.getOpcoes());
         Scanner scannerIn = new Scanner(System.in);
         String answer = scannerIn.nextLine();
         colocarElementoNaFila(q, validaNumero(answer));
         System.out.println("Obrigado por jogar conosco! O Relatório será gerado pelo servidor");
+
+        while(true){
+
+        }
     }
 
     private static int validaNumero(String resposta){
@@ -47,6 +47,16 @@ public class Cliente {
         } catch (InterruptedException e){
             e.printStackTrace();
         }
+    }
+
+    static int pegarIdJogador(ZookeeperHelper.Queue filaJogadores) throws KeeperException, InterruptedException {
+       int idJogador =  filaJogadores.consume();
+        filaJogadores.produce(idJogador+1);
+        return idJogador;
+    }
+
+    static Jogador criarJogador(int id){
+        return new Jogador(id);
     }
 
 }
