@@ -357,12 +357,12 @@ public class ZookeeperHelper implements Watcher {
                 if(respostaCorreta==resp){
                     players[jogador].pontuar(1);
                 }
-
             });
 
-            for(int i=0;i<=3;i++){
-                System.out.println("Jogador "+ i + "Score: " + players[i].getScore());
+            for(int i=0;i<3;i++){
+                System.out.println("Jogador "+ i + "| Score: " + players[i].getScore());
             }
+            System.exit(0);
         }
     }
 
@@ -605,7 +605,7 @@ public class ZookeeperHelper implements Watcher {
     }
 
     public static Lock criaLock(){
-        return new Lock("localhost","/lock",10000);
+        return new Lock("localhost","/lock",3000);
 
     }
 

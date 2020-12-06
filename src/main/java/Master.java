@@ -27,38 +27,40 @@ public class Master {
 
         criaPrimeiroJogador();
         ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",4);
-        boolean flag = barreiraComecoGame.enter();
+        barreiraComecoGame.enter();
         System.out.println("Jogadores minimos conectados. O Jogo vai começar!");
         while(true){
             Pergunta pergunta = Pergunta.consumirPerguntaPorIndice(numeroPergunta);
             int numeroJogadores = 3;
             ZookeeperHelper.Barrier barreiraPergunta = new ZookeeperHelper.Barrier("localhost","/p"+numeroPergunta,4);
+            barreiraPergunta.enter();
             numeroPergunta = numeroPergunta+1;
-            ZookeeperHelper.Lock lock = ZookeeperHelper.criaLock();
-            try{
-                boolean success = lock.lock();
-                if (success) {
-                    List<Integer> listaRespostas = new ArrayList<>();
-                    for(int i=0;i<=numeroJogadores;i++) {
-                        listaRespostas.add(consomeElementoDaFilaRespostas(q));
+            List<Integer> listaRespostas = new ArrayList<>();
+            for (int i = 0; i < numeroJogadores; i++) {
+                listaRespostas.add(consomeElementoDaFilaRespostas(q));
+            }
+            computaResultados(listaRespostas, pergunta, jogadores);
+            if(numeroPergunta==6) {
+                try {
+                    ZookeeperHelper.Lock lock = ZookeeperHelper.criaLock();
+                    boolean success = lock.lock();
+                    if (success) {
+                        for (int i = 0; i < numeroJogadores; i++) {
+                            listaRespostas.add(consomeElementoDaFilaRespostas(q));
+                        }
+                        lock.computeResultados(listaRespostas, pergunta, jogadores);
+                    } else {
+                        while (true) {
+                        }
                     }
-                    lock.computeResultados(listaRespostas, pergunta, jogadores);
-                } else {
-                    while(true) {
-                    }
-                }
-                if(numeroPergunta==6){
-                    for(int i=0;i<=3;i++){
-                        System.out.println("Jogador "+ i + "| Score: " + jogadores[i].getScore());
+                    for (int i = 0; i <= 3; i++) {
+                        System.out.println("Jogador " + i + "| Score: " + jogadores[i].getScore());
                     }
                     System.out.println("Fim de jogo");
                     System.exit(0);
+                } catch (Exception e){
+                    System.exit(0);
                 }
-                barreiraPergunta.enter();
-            } catch (KeeperException e){
-                e.printStackTrace();
-            } catch (InterruptedException e){
-                e.printStackTrace();
             }
         }
     }
@@ -78,6 +80,28 @@ public class Master {
     private static void criaPrimeiroJogador() throws KeeperException, InterruptedException {
         ZookeeperHelper.Queue filaJogadores = ZookeeperHelper.criaFilaJogadores();
         filaJogadores.produce(1);
+    }
+
+    private static void computaResultados(List<Integer> respostas, Pergunta pergunta, Jogador[] players) throws InterruptedException {
+        new Thread().sleep(10000);
+        int respostaCorreta = pergunta.getResposta();
+        respostas.forEach(resposta ->{
+            int resp = 0;
+            int jogador = 0;
+            resp = resposta%10;
+            jogador =  ((resposta-resp)/10)-1;
+
+            if(respostaCorreta==resp){
+                players[jogador].pontuar(1);
+            }
+        });
+
+        for(int i=0;i<3;i++){
+            System.out.println("Jogador "+ i + "| Score: " + players[i].getScore());
+        }
+
+
+
     }
 
 }
