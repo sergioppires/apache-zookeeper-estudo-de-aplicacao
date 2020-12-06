@@ -12,41 +12,45 @@ import models.Pergunta;
 import org.apache.zookeeper.KeeperException;
 
 public class Master {
-    private static ServerSocket server;
-    private static int port = 9876;
-    private static ZookeeperHelper.Queue queue;
     private static int numeroPergunta = 1;
+
+
 
 
     public static void main(String args[]) throws  KeeperException, InterruptedException {
         ZookeeperHelper.Queue q = ZookeeperHelper.criaFilaRespostas();
-        ZookeeperHelper.Queue filaPerguntas = ZookeeperHelper.criaFilaPerguntas();
+
+        Jogador jogador1 = new Jogador(1);
+        Jogador jogador2 = new Jogador(2);
+        Jogador jogador3 = new Jogador(3);
+        Jogador[] jogadores = new Jogador[]{jogador1,jogador2,jogador3};
+
         criaPrimeiroJogador();
-        ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",3);
+        ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",4);
         boolean flag = barreiraComecoGame.enter();
+        System.out.println("Jogadores minimos conectados. O Jogo vai começar!");
         while(true){
-            System.out.println("Jogadores minimos conectados. O Jogo vai começar!");
             Pergunta pergunta = Pergunta.consumirPerguntaPorIndice(numeroPergunta);
             int numeroJogadores = 3;
-            for(int i=1;i<numeroJogadores;i++){
-                filaPerguntas.produce(numeroPergunta);
-            }
-            ZookeeperHelper.Barrier barreiraPergunta = new ZookeeperHelper.Barrier("localhost","/p"+numeroPergunta,3);
+            ZookeeperHelper.Barrier barreiraPergunta = new ZookeeperHelper.Barrier("localhost","/p"+numeroPergunta,4);
             numeroPergunta = numeroPergunta+1;
             ZookeeperHelper.Lock lock = ZookeeperHelper.criaLock();
             try{
                 boolean success = lock.lock();
                 if (success) {
                     List<Integer> listaRespostas = new ArrayList<>();
-                    for(int i=0;i<numeroJogadores;i++) {
+                    for(int i=0;i<=numeroJogadores;i++) {
                         listaRespostas.add(consomeElementoDaFilaRespostas(q));
                     }
-                    lock.computeResultados(listaRespostas, pergunta, numeroJogadores);
+                    lock.computeResultados(listaRespostas, pergunta, jogadores);
                 } else {
                     while(true) {
                     }
                 }
-                if(numeroPergunta==5){
+                if(numeroPergunta==6){
+                    for(int i=0;i<=3;i++){
+                        System.out.println("Jogador "+ i + "| Score: " + jogadores[i].getScore());
+                    }
                     System.out.println("Fim de jogo");
                     System.exit(0);
                 }
@@ -75,22 +79,5 @@ public class Master {
         ZookeeperHelper.Queue filaJogadores = ZookeeperHelper.criaFilaJogadores();
         filaJogadores.produce(1);
     }
-
-    private static int pegaNumeroJogadores() throws KeeperException, InterruptedException {
-        ZookeeperHelper.Queue filaJogadores = ZookeeperHelper.criaFilaJogadores();
-        int jogadores = filaJogadores.consume();
-        filaJogadores.produce(jogadores);
-        return jogadores;
-    }
-
-    private static int pegaNumeroJogadoresBarrier() throws KeeperException, InterruptedException {
-        int n = pegaNumeroJogadores();
-        if(n<2){
-            n=2;
-        }
-        return n;
-    }
-
-
 
 }

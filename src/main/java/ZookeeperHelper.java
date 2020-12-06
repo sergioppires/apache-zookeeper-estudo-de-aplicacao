@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 
+import models.Jogador;
 import models.Pergunta;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -337,7 +338,7 @@ public class ZookeeperHelper implements Watcher {
             System.exit(0);
         }
 
-        void computeResultados(List<Integer> respostas, Pergunta pergunta, int players) {
+        void computeResultados(List<Integer> respostas, Pergunta pergunta, Jogador[] players) {
             System.out.println("Lock acquired!");
             try {
                 new Thread().sleep(wait);
@@ -346,11 +347,22 @@ public class ZookeeperHelper implements Watcher {
             }
             //Exits, which releases the ephemeral node (Unlock operation)
             System.out.println("Lock released!");
-            int respostaCorreta = pergunta.pergunta1().getResposta();
-            int acertos = (int) respostas.stream().filter(r -> respostaCorreta == r).count();;
-            int erros = players - acertos;
-            System.out.println("Acertos: " + acertos + " | Erros: " + erros);
-            //System.exit(0);
+            int respostaCorreta = pergunta.getResposta();
+            respostas.forEach(resposta ->{
+                int resp = 0;
+                int jogador = 0;
+                resp = resposta%10;
+                jogador =  ((resposta-resp)/10)-1;
+
+                if(respostaCorreta==resp){
+                    players[jogador].pontuar(1);
+                }
+
+            });
+
+            for(int i=0;i<=3;i++){
+                System.out.println("Jogador "+ i + "Score: " + players[i].getScore());
+            }
         }
     }
 

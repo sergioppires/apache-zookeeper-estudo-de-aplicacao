@@ -13,20 +13,18 @@ import java.util.Scanner;
 
 public class Cliente {
 
-    public static void main(String args[]) throws KeeperException, InterruptedException, IOException, ClassNotFoundException {
+    static int indice = 1;
+
+    public static void main(String args[]) throws KeeperException, InterruptedException{
         ZookeeperHelper.Queue filaRespostas = ZookeeperHelper.criaFilaRespostas();
-        ZookeeperHelper.Queue filaJogadores = ZookeeperHelper.criaFilaJogadores();
-        ZookeeperHelper.Queue filaPerguntas = ZookeeperHelper.criaFilaPerguntas();
+        ZookeeperHelper.Queue filaJogadores = criaFilaJogadores();
         Jogador jogador = criarJogador(pegarIdJogador(filaJogadores));
-        ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",3);
+        ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",4);
         System.out.println("Aguardando todos os jogadores se conectarem.");
         barreiraComecoGame.enter();
         while(true){
             Thread.sleep(1000);
-            int numeroJogadores = pegaNumeroJogadores();
-           // int indice = filaPerguntas.consume();
-            int indice = 1;
-            ZookeeperHelper.Barrier barreiraPergunta = new ZookeeperHelper.Barrier("localhost","/p"+indice,3);
+            ZookeeperHelper.Barrier barreiraPergunta = new ZookeeperHelper.Barrier("localhost","/p"+indice,4);
             barreiraPergunta.enter();
             Pergunta pergunta = Pergunta.consumirPerguntaPorIndice(indice);
             System.out.println(pergunta.getPergunta());
@@ -38,14 +36,22 @@ public class Cliente {
             } else {
                 System.out.println("Você errou!");
             }
-            colocarElementoNaFila(filaRespostas, validaNumero(answer));
-            indice++;
+            indice = indice+1;
+            colocarElementoNaFila(filaRespostas, validaNumero(jogador.getId()+answer));
+            if(indice==6){
+                System.out.println("Fim de jogo!");
+                System.exit(0);
 
+            }
         }
     }
 
     private static int validaNumero(String resposta){
         return Integer.parseInt(resposta);
+    }
+
+    public static ZookeeperHelper.Queue criaFilaJogadores(){
+        return new ZookeeperHelper.Queue("localhost", "/jogadores");
     }
 
     static void colocarElementoNaFila(ZookeeperHelper.Queue q, int i) throws KeeperException, InterruptedException {
@@ -68,8 +74,7 @@ public class Cliente {
         return new Jogador(id);
     }
 
-    private static int pegaNumeroJogadores() throws KeeperException, InterruptedException {
-        ZookeeperHelper.Queue filaJogadores = ZookeeperHelper.criaFilaJogadores();
+    private static int pegaNumeroJogadores(ZookeeperHelper.Queue filaJogadores) throws KeeperException, InterruptedException {
         int jogadores = filaJogadores.consume();
         filaJogadores.produce(jogadores);
         return jogadores;

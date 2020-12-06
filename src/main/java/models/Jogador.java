@@ -5,7 +5,6 @@ public class Jogador {
     private int id;
     private String nome;
     private int score;
-    private int it = 1;
 
     public Jogador(int id) {
         this.id = id;
@@ -25,8 +24,13 @@ public class Jogador {
         this.nome = nome;
     }
 
-    public void setScore(int score) {
-        this.score = score;
+    public void setScore(int score) { this.score = score; }
+
+    public void pontuar(int ponto) { this.score = score+ponto; }
+
+    public int getId() {
+        return id;
     }
+
 
 }
