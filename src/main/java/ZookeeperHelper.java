@@ -592,6 +592,10 @@ public class ZookeeperHelper implements Watcher {
         return new ZookeeperHelper.Queue("localhost", "/respostas");
     }
 
+    public static ZookeeperHelper.Queue criaFilaLideranca(){
+        return new ZookeeperHelper.Queue("localhost", "/lideranca");
+    }
+
     public static ZookeeperHelper.Queue criaFilaPerguntas(){
         return new ZookeeperHelper.Queue("localhost", "/perguntas");
     }

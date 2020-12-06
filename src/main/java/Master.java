@@ -1,9 +1,3 @@
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,25 +7,30 @@ import org.apache.zookeeper.KeeperException;
 
 public class Master {
     private static int numeroPergunta = 1;
-
-
-
+    public static int clienteLider;
+    public static ZookeeperHelper.Leader leader;
+    public static Jogador jogador1 = new Jogador(1);
+    public static Jogador jogador2 = new Jogador(2);
+    public static Jogador jogador3 = new Jogador(3);
+    public static Jogador[] jogadores = new Jogador[]{jogador1,jogador2,jogador3};
 
     public static void main(String args[]) throws  KeeperException, InterruptedException {
         ZookeeperHelper.Queue q = ZookeeperHelper.criaFilaRespostas();
+        leader = new ZookeeperHelper.Leader("localhost","/election","/leader",0);
 
         Jogador jogador1 = new Jogador(1);
         Jogador jogador2 = new Jogador(2);
         Jogador jogador3 = new Jogador(3);
-        Jogador[] jogadores = new Jogador[]{jogador1,jogador2,jogador3};
+        jogadores = new Jogador[]{jogador1,jogador2,jogador3};
 
         criaPrimeiroJogador();
         ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",4);
         barreiraComecoGame.enter();
         System.out.println("Jogadores minimos conectados. O Jogo vai começar!");
+        int numeroJogadores = 3;
+
         while(true){
             Pergunta pergunta = Pergunta.consumirPerguntaPorIndice(numeroPergunta);
-            int numeroJogadores = 3;
             ZookeeperHelper.Barrier barreiraPergunta = new ZookeeperHelper.Barrier("localhost","/p"+numeroPergunta,4);
             barreiraPergunta.enter();
             numeroPergunta = numeroPergunta+1;
@@ -40,7 +39,8 @@ public class Master {
                 listaRespostas.add(consomeElementoDaFilaRespostas(q));
             }
             computaResultados(listaRespostas, pergunta, jogadores);
-            if(numeroPergunta==6) {
+            validaLideranca(jogadores);
+            if(numeroPergunta==5) {
                 try {
                     ZookeeperHelper.Lock lock = ZookeeperHelper.criaLock();
                     boolean success = lock.lock();
@@ -53,8 +53,8 @@ public class Master {
                         while (true) {
                         }
                     }
-                    for (int i = 0; i <= 3; i++) {
-                        System.out.println("Jogador " + i + "| Score: " + jogadores[i].getScore());
+                    for (int i = 0; i < 3; i++) {
+                        System.out.println("Jogador " + i+1 + " | Score: " + jogadores[i].getScore());
                     }
                     System.out.println("Fim de jogo");
                     System.exit(0);
@@ -75,6 +75,10 @@ public class Master {
             e.printStackTrace();
         }
         return x;
+    }
+
+    public static ZookeeperHelper.Leader getLeaderElection(){
+        return leader;
     }
 
     private static void criaPrimeiroJogador() throws KeeperException, InterruptedException {
@@ -102,6 +106,26 @@ public class Master {
 
 
 
+    }
+
+    private static void validaLideranca(Jogador[] jogadores) throws KeeperException, InterruptedException {
+        int lider;
+        if(jogadores[0].getScore() > jogadores[1].getScore() && jogadores[0].getScore() > jogadores[2].getScore()){
+            lider = 0;
+        } else if(jogadores[1].getScore() > jogadores[0].getScore() && jogadores[1].getScore() > jogadores[2].getScore()){
+            lider = 1;
+        } else{
+            lider=2;
+        }
+        clienteLider = lider;
+    }
+
+    public static int getLeader(){
+        return clienteLider;
+    }
+
+    public static Jogador[] retornarJogadores(){
+        return jogadores;
     }
 
 }

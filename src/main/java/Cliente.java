@@ -22,6 +22,7 @@ public class Cliente {
         ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",4);
         System.out.println("Aguardando todos os jogadores se conectarem.");
         barreiraComecoGame.enter();
+        ZookeeperHelper.Leader leader = new ZookeeperHelper.Leader("localhost","/election","/leader",jogador.getId());
         while(true){
             Thread.sleep(1000);
             ZookeeperHelper.Barrier barreiraPergunta = new ZookeeperHelper.Barrier("localhost","/p"+indice,4);
