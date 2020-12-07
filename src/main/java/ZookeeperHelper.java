@@ -5,6 +5,8 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 
+import models.Jogador;
+import models.Pergunta;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -335,6 +337,30 @@ public class ZookeeperHelper implements Watcher {
             System.out.println("Lock released!");
             System.exit(0);
         }
+
+        void computeResultados(Jogador[] players) {
+            System.out.println("Lock acquired!");
+            System.out.println("Jogador "+ validaLideranca(players) + " foi o vencedor!");
+            try {
+                new Thread().sleep(wait);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Lock released!");
+            System.exit(0);
+        }
+    }
+
+    private static int validaLideranca(Jogador[] jogadores) {
+        int lider;
+        if(jogadores[0].getScore() > jogadores[1].getScore() && jogadores[0].getScore() > jogadores[2].getScore()){
+            lider = 0;
+        } else if(jogadores[1].getScore() > jogadores[0].getScore() && jogadores[1].getScore() > jogadores[2].getScore()){
+            lider = 1;
+        } else{
+            lider=2;
+        }
+        return lider;
     }
 
     static public class Leader extends ZookeeperHelper {
@@ -557,6 +583,31 @@ public class ZookeeperHelper implements Watcher {
         } catch (InterruptedException e){
             e.printStackTrace();
         }
+    }
+
+    public static ZookeeperHelper.Queue criaFilaRespostas(){
+        return new ZookeeperHelper.Queue("localhost", "/respostas");
+    }
+
+    public static ZookeeperHelper.Queue criaFilaLideranca(){
+        return new ZookeeperHelper.Queue("localhost", "/lideranca");
+    }
+
+    public static ZookeeperHelper.Queue criaFilaPerguntas(){
+        return new ZookeeperHelper.Queue("localhost", "/perguntas");
+    }
+
+    public static ZookeeperHelper.Queue criaFilaJogadores(){
+        return new ZookeeperHelper.Queue("localhost", "/jogadores");
+    }
+
+    public static ZookeeperHelper.Barrier criaBarreiraPorPergunta(int pergunta, int tamanho){
+        return new ZookeeperHelper.Barrier("localhost","/p"+pergunta,tamanho);
+    }
+
+    public static Lock criaLock(){
+        return new Lock("localhost","/lock",1000);
+
     }
 
 }
