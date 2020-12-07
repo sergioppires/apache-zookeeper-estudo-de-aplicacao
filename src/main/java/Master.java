@@ -22,6 +22,7 @@ public class Master {
         Jogador jogador2 = new Jogador(2);
         Jogador jogador3 = new Jogador(3);
         jogadores = new Jogador[]{jogador1,jogador2,jogador3};
+
         ZookeeperHelper.Lock lock = ZookeeperHelper.criaLock();
         criaPrimeiroJogador();
         ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",4);
@@ -52,7 +53,6 @@ public class Master {
                     for (int i = 0; i < 3; i++) {
                         System.out.println("Jogador " + i+1 + " | Score: " + jogadores[i].getScore());
                     }
-                    System.out.println("Fim de jogo");
                     System.exit(0);
                 } catch (Exception e){
                     System.exit(0);
