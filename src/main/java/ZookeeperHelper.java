@@ -338,32 +338,29 @@ public class ZookeeperHelper implements Watcher {
             System.exit(0);
         }
 
-        void computeResultados(List<Integer> respostas, Pergunta pergunta, Jogador[] players) {
+        void computeResultados(Jogador[] players) {
             System.out.println("Lock acquired!");
+            System.out.println("Jogador "+ validaLideranca(players) + " foi o vencedor!");
             try {
                 new Thread().sleep(wait);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            //Exits, which releases the ephemeral node (Unlock operation)
             System.out.println("Lock released!");
-            int respostaCorreta = pergunta.getResposta();
-            respostas.forEach(resposta ->{
-                int resp = 0;
-                int jogador = 0;
-                resp = resposta%10;
-                jogador =  ((resposta-resp)/10)-1;
-
-                if(respostaCorreta==resp){
-                    players[jogador].pontuar(1);
-                }
-            });
-
-            for(int i=0;i<3;i++){
-                System.out.println("Jogador "+ i + "| Score: " + players[i].getScore());
-            }
             System.exit(0);
         }
+    }
+
+    private static int validaLideranca(Jogador[] jogadores) {
+        int lider;
+        if(jogadores[0].getScore() > jogadores[1].getScore() && jogadores[0].getScore() > jogadores[2].getScore()){
+            lider = 0;
+        } else if(jogadores[1].getScore() > jogadores[0].getScore() && jogadores[1].getScore() > jogadores[2].getScore()){
+            lider = 1;
+        } else{
+            lider=2;
+        }
+        return lider;
     }
 
     static public class Leader extends ZookeeperHelper {
@@ -609,7 +606,7 @@ public class ZookeeperHelper implements Watcher {
     }
 
     public static Lock criaLock(){
-        return new Lock("localhost","/lock",3000);
+        return new Lock("localhost","/lock",1000);
 
     }
 

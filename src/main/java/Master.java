@@ -22,7 +22,7 @@ public class Master {
         Jogador jogador2 = new Jogador(2);
         Jogador jogador3 = new Jogador(3);
         jogadores = new Jogador[]{jogador1,jogador2,jogador3};
-
+        ZookeeperHelper.Lock lock = ZookeeperHelper.criaLock();
         criaPrimeiroJogador();
         ZookeeperHelper.Barrier barreiraComecoGame = new ZookeeperHelper.Barrier("localhost","/b1",4);
         barreiraComecoGame.enter();
@@ -40,15 +40,11 @@ public class Master {
             }
             computaResultados(listaRespostas, pergunta, jogadores);
             validaLideranca(jogadores);
-            if(numeroPergunta==5) {
+            if(numeroPergunta==6) {
                 try {
-                    ZookeeperHelper.Lock lock = ZookeeperHelper.criaLock();
                     boolean success = lock.lock();
                     if (success) {
-                        for (int i = 0; i < numeroJogadores; i++) {
-                            listaRespostas.add(consomeElementoDaFilaRespostas(q));
-                        }
-                        lock.computeResultados(listaRespostas, pergunta, jogadores);
+                        lock.computeResultados(jogadores);
                     } else {
                         while (true) {
                         }
@@ -126,6 +122,18 @@ public class Master {
 
     public static Jogador[] retornarJogadores(){
         return jogadores;
+    }
+
+    private static int validaLiderancaid(Jogador[] jogadores) {
+        int lider;
+        if(jogadores[0].getScore() > jogadores[1].getScore() && jogadores[0].getScore() > jogadores[2].getScore()){
+            lider = 0;
+        } else if(jogadores[1].getScore() > jogadores[0].getScore() && jogadores[1].getScore() > jogadores[2].getScore()){
+            lider = 1;
+        } else{
+            lider=2;
+        }
+        return lider;
     }
 
 }
